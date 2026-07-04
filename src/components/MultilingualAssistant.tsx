@@ -146,9 +146,11 @@ const LANGUAGES: LanguageOption[] = [
 
 interface MultilingualAssistantProps {
   profile: FarmerProfile;
+  languageCode?: string;
+  onLanguageChange?: (code: string) => void;
 }
 
-export default function MultilingualAssistant({ profile }: MultilingualAssistantProps) {
+export default function MultilingualAssistant({ profile, languageCode, onLanguageChange }: MultilingualAssistantProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedLang, setSelectedLang] = useState<LanguageOption>(LANGUAGES[0]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -157,6 +159,28 @@ export default function MultilingualAssistant({ profile }: MultilingualAssistant
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync selectedLang with external languageCode if provided
+  useEffect(() => {
+    if (languageCode) {
+      const found = LANGUAGES.find((l) => l.code === languageCode);
+      if (found && found.code !== selectedLang.code) {
+        // Stop speech if speaking
+        window.speechSynthesis.cancel();
+        setSpeakingMsgId(null);
+        setSelectedLang(found);
+
+        // Add translation helper welcome node
+        const welcomeNode: Message = {
+          id: `welcome-${Date.now()}`,
+          sender: "bot",
+          text: found.welcome,
+          timestamp: new Date()
+        };
+        setMessages([welcomeNode]);
+      }
+    }
+  }, [languageCode]);
 
   // Initialize welcome message when language changes OR on startup
   useEffect(() => {
@@ -234,6 +258,10 @@ export default function MultilingualAssistant({ profile }: MultilingualAssistant
         timestamp: new Date()
       };
       setMessages([welcomeNode]);
+
+      if (onLanguageChange) {
+        onLanguageChange(code);
+      }
     }
   };
 
