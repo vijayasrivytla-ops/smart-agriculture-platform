@@ -1,0 +1,11 @@
+{
+  "name": "Remix: Smart Agriculture Portal",
+  "description": "An advanced AI-powered full-stack platform for farmers. Includes crop disease detection via leaf scanning, crop yield prediction, soil health analysis, real-time market price updates, local weather integrations, and a farmer community forum.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "DiseaseDiagnosis": {
+      "title": "DiseaseDiagnosis",
+      "description": "An AI crop disease scan result",
+      "type": "object",
+      "properties": {
+        "cropType": { "type": "string" },
+        "status": { "type": "string" },
+        "diseaseName": { "type": "string" },
+        "confidenceScore": { "type": "number" },
+        "description": { "type": "string" },
+        "symptoms": { "type": "string" },
+        "organicRemedies": { "type": "string" },
+        "chemicalRemedies": { "type": "string" },
+        "preventionTips": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "farmerName": { "type": "string" },
+        "farmLocation": { "type": "string" }
+      },
+      "required": ["cropType", "diseaseName", "timestamp", "farmerName"]
+    },
+    "YieldPrediction": {
+      "title": "YieldPrediction",
+      "description": "An AI yield prediction result",
+      "type": "object",
+      "properties": {
+        "crop": { "type": "string" },
+        "region": { "type": "string" },
+        "areaSize": { "type": "number" },
+        "areaUnit": { "type": "string" },
+        "sowingMonth": { "type": "string" },
+        "rainfall": { "type": "string" },
+        "fertilizer": { "type": "string" },
+        "additionalNotes": { "type": "string" },
+        "estimatedYieldRange": { "type": "string" },
+        "yieldPerUnit": { "type": "string" },
+        "confidenceScore": { "type": "number" },
+        "factors": { "type": "array" },
+        "growthStages": { "type": "array" },
+        "riskMitigation": { "type": "array" },
+        "optimizationTips": { "type": "array" },
+        "detailedAnalysis": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "farmerName": { "type": "string" }
+      },
+      "required": ["crop", "region", "areaSize", "areaUnit", "timestamp", "farmerName"]
+    },
+    "SoilAnalysis": {
+      "title": "SoilAnalysis",
+      "description": "A soil biochemistry assessment result",
+      "type": "object",
+      "properties": {
+        "nitrogen": { "type": "number" },
+        "phosphorus": { "type": "number" },
+        "potassium": { "type": "number" },
+        "ph": { "type": "number" },
+        "moisture": { "type": "number" },
+        "soilType": { "type": "string" },
+        "cropIntention": { "type": "string" },
+        "nutrientStatus": { "type": "string" },
+        "phAnalysis": { "type": "string" },
+        "moistureEvaluation": { "type": "string" },
+        "suitableCrops": { "type": "array" },
+        "unsuitableCrops": { "type": "array" },
+        "soilConditioning": { "type": "array" },
+        "fertilizerSchedule": { "type": "array" },
+        "microbiologyInsights": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "farmerName": { "type": "string" }
+      },
+      "required": ["nitrogen", "phosphorus", "potassium", "ph", "moisture", "soilType", "timestamp", "farmerName"]
+    },
+    "ForumPost": {
+      "title": "ForumPost",
+      "description": "A community forum post",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "authorName": { "type": "string" },
+        "farmLocation": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "likes": { "type": "number" },
+        "likedBy": { "type": "array" },
+        "replies": { "type": "array" }
+      },
+      "required": ["title", "content", "category", "authorName", "timestamp"]
+    }
+  },
+  "firestore": {
+    "disease_diagnoses/{diagnosisId}": {
+      "schema": "DiseaseDiagnosis",
+      "description": "Diagnostic history"
+    },
+    "yield_predictions/{predictionId}": {
+      "schema": "YieldPrediction",
+      "description": "Yield predictions"
+    },
+    "soil_analyses/{analysisId}": {
+      "schema": "SoilAnalysis",
+      "description": "Soil biochemistry analyses"
+    },
+    "forum_posts/{postId}": {
+      "schema": "ForumPost",
+      "description": "Community forum posts"
+    }
+  }
+}

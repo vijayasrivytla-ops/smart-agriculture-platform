@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /disease_diagnoses/{document} {
+      allow read, write: if true;
+    }
+    match /yield_predictions/{document} {
+      allow read, write: if true;
+    }
+    match /soil_analyses/{document} {
+      allow read, write: if true;
+    }
+    match /forum_posts/{document} {
+      allow read, write: if true;
+    }
+  }
+}
