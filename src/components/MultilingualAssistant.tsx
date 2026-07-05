@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageSquare, X, Send, Sparkles, Volume2, VolumeX, Trash2, ArrowRight, Languages, HelpCircle } from "lucide-react";
+import { MessageSquare, X, Send, Sparkles, Volume2, VolumeX, Trash2, ArrowRight, Languages, HelpCircle, Mic, MicOff } from "lucide-react";
 import { FarmerProfile } from "../types";
 
 interface Message {
@@ -19,6 +19,7 @@ interface LanguageOption {
   placeholder: string;
   faqTitle: string;
   faqs: string[];
+  listeningLabel: string;
 }
 
 const LANGUAGES: LanguageOption[] = [
@@ -35,7 +36,8 @@ const LANGUAGES: LanguageOption[] = [
       "What is the best soil pH for basmati rice?",
       "How can I prevent wheat leaf rust disease?",
       "What are high-yield companion crops for maize?"
-    ]
+    ],
+    listeningLabel: "Listening in English... Speak clearly."
   },
   {
     code: "Hindi",
@@ -50,7 +52,8 @@ const LANGUAGES: LanguageOption[] = [
       "बासमती चावल के लिए सबसे अच्छी मिट्टी का पीएच (pH) क्या है?",
       "गेहूं के पत्तों के गेरूआ रोग (रस्ट) से कैसे बचाव करें?",
       "मक्के के साथ उगाई जाने वाली उच्च उपज वाली फसलें कौन सी हैं?"
-    ]
+    ],
+    listeningLabel: "हिन्दी में सुन रहे हैं... कृपया स्पष्ट बोलें।"
   },
   {
     code: "Spanish",
@@ -65,7 +68,8 @@ const LANGUAGES: LanguageOption[] = [
       "¿Cuál es el mejor pH del suelo para las patatas?",
       "¿Cómo prevenir el mildiu en el tomate?",
       "¿Qué cultivos asociados aumentan el rendimiento del maíz?"
-    ]
+    ],
+    listeningLabel: "Escuchando en español... Hable con claridad."
   },
   {
     code: "French",
@@ -80,7 +84,8 @@ const LANGUAGES: LanguageOption[] = [
       "Quel est le pH idéal du sol pour les pommes de terre ?",
       "Comment prévenir la rouille du blé ?",
       "Quelles sont les meilleures cultures associées pour le maïs ?"
-    ]
+    ],
+    listeningLabel: "Écoute en cours en français... Parlez clairement."
   },
   {
     code: "Punjabi",
@@ -95,7 +100,8 @@ const LANGUAGES: LanguageOption[] = [
       "ਬਾਸਮਤੀ ਝੋਨੇ ਲਈ ਸਭ ਤੋਂ ਵਧੀਆ ਮਿੱਟੀ ਦਾ pH ਕੀ ਹੈ?",
       "ਕਣਕ ਦੀ ਕੰਗਿਆਰੀ (ਰਸਟ) ਦੀ ਬਿਮਾਰੀ ਤੋਂ ਬਚਾਅ ਕਿਵੇਂ ਕਰੀਏ?",
       "ਮੱਕੀ ਦੇ ਨਾਲ ਵਧੇਰੇ ਝਾੜ ਦੇਣ ਵਾਲੀਆਂ ਸਹਾਇਕ ਫ਼ਸਲਾਂ ਕਿਹੜੀਆਂ ਹਨ?"
-    ]
+    ],
+    listeningLabel: "ਪੰਜਾਬੀ ਵਿੱਚ ਸੁਣ ਰਹే ਹਾਂ... ਕਿਰਪਾ ਕਰਕੇ ਸਾਫ਼ ਬੋਲੋ।"
   },
   {
     code: "Telugu",
@@ -110,7 +116,8 @@ const LANGUAGES: LanguageOption[] = [
       "వరి పంటకు అనుకూలమైన నేల pH ఎంత ఉండాలి?",
       "గోధుమ తుప్పు తెగులు నివారణ చర్యలు ఏమిటి?",
       "మొక్కజొన్నతో పాటు వేయగల లాభదాయక అంతర పంటలు ఏవి?"
-    ]
+    ],
+    listeningLabel: "తెలుగులో వింటున్నాము... స్పష్టంగా మాట్లాడండి."
   },
   {
     code: "Swahili",
@@ -125,7 +132,8 @@ const LANGUAGES: LanguageOption[] = [
       "Ni kiwango gani cha pH cha udongo kinachofaa kwa viazi?",
       "Jinsi ya kuzuia ugonjwa wa ukungu kwenye mahindi?",
       "Ni mazao gani ya mseto yanayoongeza mavuno ya mtama?"
-    ]
+    ],
+    listeningLabel: "Tunasikiliza kwa Kiswahili... Ongea kwa ufasaha."
   },
   {
     code: "Portuguese",
@@ -140,7 +148,8 @@ const LANGUAGES: LanguageOption[] = [
       "Qual é o pH de solo ideal para o cultivo de soja?",
       "Como tratar a ferrugem asiática na soja?",
       "Quais consórcios de culturas aumentam a produtividade do milho?"
-    ]
+    ],
+    listeningLabel: "Ouvindo em português... Fale com clareza."
   }
 ];
 
@@ -157,8 +166,14 @@ export default function MultilingualAssistant({ profile, languageCode, onLanguag
   const [inputValue, setInputValue] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState<boolean>(() => {
+    const cached = sessionStorage.getItem("kisan_ai_auto_speak");
+    return cached === "true";
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Sync selectedLang with external languageCode if provided
   useEffect(() => {
@@ -318,6 +333,11 @@ export default function MultilingualAssistant({ profile, languageCode, onLanguag
       };
 
       setMessages((prev) => [...prev, botMessage]);
+
+      // Auto speak the bot answer if active
+      if (autoSpeakEnabled) {
+        handleSpeak(botMessage.text, botMessage.id);
+      }
     } catch (err: any) {
       console.error("Multilingual bot error:", err);
       const errorMessage: Message = {
@@ -363,6 +383,67 @@ export default function MultilingualAssistant({ profile, languageCode, onLanguag
       window.speechSynthesis.speak(utterance);
     } else {
       alert("Text-to-speech is not supported in your current browser session.");
+    }
+  };
+
+  // Cleanup speech recognition and text to speech on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const handleToggleListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in your browser. Please use Google Chrome, Safari, or Microsoft Edge.");
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+    } else {
+      try {
+        window.speechSynthesis.cancel();
+        setSpeakingMsgId(null);
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = selectedLang.locale;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          if (transcript) {
+            setInputValue((prev) => (prev ? prev + " " + transcript : transcript));
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err) {
+        console.error("Failed to start speech recognition:", err);
+        setIsListening(false);
+      }
     }
   };
 
@@ -484,22 +565,54 @@ export default function MultilingualAssistant({ profile, languageCode, onLanguag
             </header>
 
             {/* Quick Settings & Selection Panel */}
-            <div className="px-4 py-2 bg-[#0A1F16]/40 border-b border-white/5 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-[10px] text-white/60">
-                <Languages className="w-3.5 h-3.5 text-[#94C973]" />
-                <span>Advisor Language:</span>
+            <div className="px-4 py-2.5 bg-[#0A1F16]/40 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 text-[10px] text-white/60">
+                  <Languages className="w-3.5 h-3.5 text-[#94C973]" />
+                  <span>Advisor Language:</span>
+                </div>
+                <select
+                  value={selectedLang.code}
+                  onChange={handleLanguageChange}
+                  className="text-[11px] bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-white font-extrabold focus:outline-none focus:border-[#94C973] cursor-pointer"
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code} className="bg-[#122E23] text-white">
+                      {l.flag} {l.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={selectedLang.code}
-                onChange={handleLanguageChange}
-                className="text-[11px] bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-white font-extrabold focus:outline-none focus:border-[#94C973] cursor-pointer"
-              >
-                {LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.flag} {l.name}
-                  </option>
-                ))}
-              </select>
+
+              {/* Auto-Speak / Voice Mode Toggle */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-white/5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newVal = !autoSpeakEnabled;
+                    setAutoSpeakEnabled(newVal);
+                    sessionStorage.setItem("kisan_ai_auto_speak", String(newVal));
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-extrabold transition cursor-pointer select-none ${
+                    autoSpeakEnabled
+                      ? "bg-[#94C973]/10 border-[#94C973]/30 text-[#94C973]"
+                      : "bg-black/20 border-white/10 text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                  title="Toggle automatic voice playback for AI answers"
+                >
+                  {autoSpeakEnabled ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 animate-pulse text-[#94C973]" />
+                      <span>Auto-Speak: ON</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5" />
+                      <span>Auto-Speak: OFF</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Messages Area */}
@@ -593,6 +706,14 @@ export default function MultilingualAssistant({ profile, languageCode, onLanguag
               </div>
             )}
 
+            {/* Listening Banner when Speech Recognition is active */}
+            {isListening && (
+              <div className="px-4 py-1.5 bg-red-500/10 border-b border-red-500/20 text-[10px] text-red-300 font-extrabold flex items-center gap-2 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping shrink-0" />
+                <span>🎙️ {selectedLang.listeningLabel}</span>
+              </div>
+            )}
+
             {/* Input Form */}
             <form
               onSubmit={(e) => {
@@ -601,16 +722,36 @@ export default function MultilingualAssistant({ profile, languageCode, onLanguag
               }}
               className="p-3 bg-[#0A1F16] border-t border-white/10 flex items-center gap-2"
             >
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={selectedLang.placeholder}
-                className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#94C973]"
-              />
+              <div className="relative flex-1 flex items-center">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={isListening ? "Listening... Speak now..." : selectedLang.placeholder}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl pl-3 pr-10 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#94C973]"
+                />
+                
+                {/* Embedded Mic Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleListening}
+                  className={`absolute right-2 p-1.5 rounded-lg transition cursor-pointer select-none ${
+                    isListening
+                      ? "bg-red-500/25 text-red-400 hover:bg-red-500/40"
+                      : "text-white/40 hover:text-[#94C973] hover:bg-white/5"
+                  }`}
+                  title="Voice Input (Speech-to-Text)"
+                >
+                  {isListening ? (
+                    <Mic className="w-3.5 h-3.5 animate-pulse" />
+                  ) : (
+                    <Mic className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
               <button
                 type="submit"
-                disabled={!inputValue.trim() || isTyping}
+                disabled={!inputValue.trim() || isTyping || isListening}
                 className="p-2 bg-[#94C973] text-[#0A1F16] disabled:opacity-50 hover:bg-[#a8db87] rounded-xl transition cursor-pointer flex items-center justify-center shrink-0"
               >
                 <Send className="w-4 h-4" />
