@@ -5,10 +5,16 @@ import base64
 from pathlib import Path
 from typing import Optional
 import os
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables with graceful fallback
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # If python-dotenv is not installed, continue without it
+    # Environment variables can still be accessed via os.environ
+    st.warning("python-dotenv not installed. Using system environment variables only.")
+    pass
 
 # Page configuration
 st.set_page_config(
