@@ -1,1 +1,0 @@
-web: streamlit run streamlit_app.py --logger.level=info --client.showErrorDetails=true --server.port=${PORT:-8501}
