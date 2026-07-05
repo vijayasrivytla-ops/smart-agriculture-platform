@@ -12,6 +12,25 @@ const PORT = 3000;
 // Increase payload limit for base64 images
 app.use(express.json({ limit: "10mb" }));
 
+// Safe JSON parsing helper to detect and log non-JSON (HTML/error) responses
+function safeParseJSON(text: string) {
+  if (!text) {
+    throw new Error("Empty response text from upstream");
+  }
+  const trimmed = String(text).trim();
+  // Quick sanity check: if it doesn't start with { or [, it's very likely not JSON
+  if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) {
+    console.error("Upstream returned non-JSON response (first 2k chars):\n", trimmed.slice(0, 2000));
+    throw new Error("Upstream returned non-JSON response. See server logs for body preview.");
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch (err) {
+    console.error("Failed to parse JSON from upstream. Preview (first 2k chars):\n", trimmed.slice(0, 2000));
+    throw new Error("Invalid JSON received from upstream. See server logs for body preview.");
+  }
+}
+
 // Lazy init Gemini AI
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI {
@@ -110,7 +129,7 @@ Return ONLY raw JSON. Do not include any markdown backticks or block formatting.
       throw new Error("No response text received from Gemini");
     }
 
-    const data = JSON.parse(text);
+    const data = safeParseJSON(text);
     res.json(data);
   } catch (error: any) {
     console.error("Error in disease detection:", error);
@@ -231,7 +250,7 @@ Return ONLY raw JSON. Do not include any markdown backticks or block formatting.
       throw new Error("No response text received from Gemini");
     }
 
-    const data = JSON.parse(text);
+    const data = safeParseJSON(text);
     res.json(data);
   } catch (error: any) {
     console.error("Error in yield prediction:", error);
@@ -332,7 +351,7 @@ Return ONLY raw JSON. Do not include any markdown backticks or block formatting.
       throw new Error("No response text received from Gemini");
     }
 
-    const data = JSON.parse(text);
+    const data = safeParseJSON(text);
     res.json(data);
   } catch (error: any) {
     console.error("Error in soil analysis:", error);
@@ -359,7 +378,7 @@ app.post("/api/farmer-chat", async (req, res) => {
 
     const targetLang = language || "English";
     const systemInstruction = `You are "KisanAI / AgroExpert", a helpful, empathetic, highly knowledgeable Senior Agronomist and Rural Extension Agent.
-Your target audience is farmers facing actual field problems (pests, diseases, irrigation difficulties, low budget, weather disasters, credit options, organic farming transitions, harvesting techniques).
+Your target audience is farmers facing actual field problems (pests, diseases, irrigation difficulties, low budget, weather disasters, credit options, organic farming transitions, harvesting tech[...]
 Rules:
 1. IMPORTANT: You MUST write your reply entirely in the language: ${targetLang}. For example, if the language is Hindi, write your entire reply in Hindi; if Spanish, write in Spanish.
 2. Provide highly practical, step-by-step, actionable advice that is realistic for small-to-medium scale farmers.
@@ -393,7 +412,7 @@ app.get("/api/weather", async (req, res) => {
     if (!lat || !lon) {
       return res.status(400).json({ error: "Missing lat or lon parameter" });
     }
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_ma[...]
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Weather service returned ${response.status}`);
@@ -487,7 +506,7 @@ Please generate high-precision agricultural guidelines for:
     });
 
     const text = response.text || "{}";
-    res.json(JSON.parse(text));
+    res.json(safeParseJSON(text));
   } catch (error: any) {
     console.error("Error generating weather advisory:", error);
     res.status(500).json({ error: error.message || "Failed to generate agricultural weather advisory" });
